@@ -11,6 +11,8 @@ const ERAS = [
   { name: 'Modern Era', years: [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024], color: 'from-slate-600 to-slate-800' },
 ];
 
+const STORAGE_KEY_YEAR = 'wwe_archive_selected_year';
+
 const MonthRow = ({ monthName, items }: { monthName: string, items: (Episode | PPV)[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -76,7 +78,12 @@ const MonthRow = ({ monthName, items }: { monthName: string, items: (Episode | P
 };
 
 export const YearView: React.FC = () => {
-  const [selectedYear, setSelectedYear] = useState(2005);
+  // Inicializamos el estado desde localStorage si existe
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_YEAR);
+    return saved ? parseInt(saved, 10) : 2005;
+  });
+  
   const [showYearGrid, setShowYearGrid] = useState(false);
   const yearsListRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +119,11 @@ export const YearView: React.FC = () => {
     });
 
     return grouped;
+  }, [selectedYear]);
+
+  // Guardamos el año seleccionado cada vez que cambie
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_YEAR, selectedYear.toString());
   }, [selectedYear]);
 
   useEffect(() => {
