@@ -1,72 +1,65 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ALL_YEARS, RAW_CONTENT, SMACKDOWN_CONTENT, PPV_CONTENT } from '../data';
 import { ContentCard } from '../components/Cards';
 import { Episode, PPV } from '../types';
-
-// Definición de las épocas de la WWE para navegación rápida
-const ERAS = [
-  { name: 'Attitude Era', years: [2000, 2001, 2002], color: 'from-red-600 to-amber-600' },
-  { name: 'Ruthless Aggression', years: [2003, 2004, 2005, 2006, 2007, 2008], color: 'from-blue-600 to-indigo-600' },
-  { name: 'PG Era', years: [2009, 2010, 2011, 2012, 2013], color: 'from-violet-600 to-purple-600' },
-  { name: 'Modern Era', years: [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024], color: 'from-slate-600 to-slate-800' },
-];
+import { useApp } from '../store';
 
 const STORAGE_KEY_YEAR = 'wwe_archive_selected_year';
 
-const MonthRow = ({ monthName, items }: { monthName: string, items: (Episode | PPV)[] }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+interface MonthSectionProps {
+  monthName: string;
+  items: (Episode | PPV)[];
+}
+
+const MonthSection: React.FC<MonthSectionProps> = ({ monthName, items }) => {
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   if (items.length === 0) return null;
 
   const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = scrollRef.current.clientWidth * 0.8;
-      scrollRef.current.scrollBy({
+    if (carouselRef.current) {
+      const scrollAmount = carouselRef.current.offsetWidth * 0.8;
+      carouselRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
     }
   };
 
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      setShowLeftArrow(scrollRef.current.scrollLeft > 50);
-    }
-  };
-
   return (
-    <section className="mb-12 relative">
-      <div className="flex items-center gap-4 px-6 md:px-12 mb-5">
-        <div className="h-px flex-1 bg-white/5"></div>
-        <h3 className="text-2xl font-heading font-black italic uppercase tracking-tighter text-white/90">
-          {monthName}
-        </h3>
-        <div className="h-px flex-1 bg-white/5"></div>
+    <section className="mb-14 px-6 relative group/row animate-fade-in">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-baseline gap-3">
+            <h3 className="text-2xl font-black tracking-tighter text-[#1a1a1a] uppercase italic">{monthName}</h3>
+            <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em]">{items.length} EPISODES</span>
+        </div>
+        <div className="h-px flex-1 bg-gray-100/50 mx-6"></div>
       </div>
 
-      <div className="relative group">
+      <div className="relative">
+        {/* Navigation Arrows for Mouse Users */}
         <button 
           onClick={() => scroll('left')}
-          className={`absolute left-0 top-0 bottom-6 w-12 md:w-16 z-30 bg-black/40 hover:bg-black/70 flex items-center justify-center transition-opacity duration-300 backdrop-blur-sm focus:bg-violet-600/50 outline-none
-            ${showLeftArrow ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          aria-label="Scroll Left"
+          className="absolute left-[-20px] top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-xl font-bold border border-gray-100"
         >
-          <span className="text-3xl font-bold">‹</span>
+          ‹
         </button>
-
         <button 
           onClick={() => scroll('right')}
-          className="absolute right-0 top-0 bottom-6 w-12 md:w-16 z-30 bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm focus:bg-violet-600/50 outline-none focus:opacity-100"
-          aria-label="Scroll Right"
+          className="absolute right-[-20px] top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-white rounded-full shadow-2xl flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity hover:scale-110 active:scale-95 text-xl font-bold border border-gray-100"
         >
-          <span className="text-3xl font-bold">›</span>
+          ›
         </button>
 
         <div 
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex gap-4 overflow-x-auto px-6 md:px-12 pb-6 hide-scrollbar scroll-smooth relative"
+          ref={carouselRef}
+          className="flex gap-5 overflow-x-auto pb-8 pt-2 px-2 hide-scrollbar snap-carousel"
         >
           {items.map(item => (
             <ContentCard key={item.id} item={item} />
@@ -78,205 +71,130 @@ const MonthRow = ({ monthName, items }: { monthName: string, items: (Episode | P
 };
 
 export const YearView: React.FC = () => {
-  // Inicializamos el estado desde localStorage si existe
+  const { playVideo } = useApp();
   const [selectedYear, setSelectedYear] = useState<number>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_YEAR);
-    return saved ? parseInt(saved, 10) : 2005;
+    return saved ? parseInt(saved, 10) : 2000;
   });
-  
-  const [showYearGrid, setShowYearGrid] = useState(false);
-  const yearsListRef = useRef<HTMLDivElement>(null);
 
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const currentEra = ERAS.find(era => era.years.includes(selectedYear)) || ERAS[0];
-
-  const chronologicalCalendar = useMemo(() => {
+  const chronologicalArchive = useMemo(() => {
     const raw = RAW_CONTENT.find(y => y.year === selectedYear)?.episodes || [];
     const sd = SMACKDOWN_CONTENT.find(y => y.year === selectedYear)?.episodes || [];
     const ppvs = PPV_CONTENT.find(y => y.year === selectedYear)?.ppvs || [];
 
     const allItems: (Episode | PPV)[] = [...raw, ...sd, ...ppvs];
 
-    const sorted = allItems.sort((a, b) => {
+    const sortedItems = allItems.sort((a, b) => {
       const dateA = new Date(a.date.replace(/\./g, '-')).getTime();
       const dateB = new Date(b.date.replace(/\./g, '-')).getTime();
       return dateA - dateB;
     });
 
-    const grouped: { [key: number]: (Episode | PPV)[] } = {};
-    sorted.forEach(item => {
-      const dateString = item.date.replace(/\./g, '-');
-      const date = new Date(dateString);
+    const grouped: Record<number, (Episode | PPV)[]> = {};
+    sortedItems.forEach(item => {
+      const date = new Date(item.date.replace(/\./g, '-'));
       if (!isNaN(date.getTime())) {
-        const monthIndex = date.getMonth();
-        if (!grouped[monthIndex]) grouped[monthIndex] = [];
-        grouped[monthIndex].push(item);
+        const month = date.getMonth();
+        if (!grouped[month]) grouped[month] = [];
+        grouped[month].push(item);
       }
     });
 
     return grouped;
   }, [selectedYear]);
 
-  // Guardamos el año seleccionado cada vez que cambie
+  const featuredItem = useMemo(() => {
+    for (let i = 0; i < 12; i++) {
+      if (chronologicalArchive[i] && chronologicalArchive[i].length > 0) {
+        return chronologicalArchive[i][0];
+      }
+    }
+    return null;
+  }, [chronologicalArchive]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_YEAR, selectedYear.toString());
   }, [selectedYear]);
 
-  useEffect(() => {
-    const activeButton = yearsListRef.current?.querySelector('.year-btn-active');
-    if (activeButton) {
-      activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }, [selectedYear]);
-
-  const handleNextYear = () => {
-    const currentIndex = ALL_YEARS.indexOf(selectedYear);
-    if (currentIndex < ALL_YEARS.length - 1) setSelectedYear(ALL_YEARS[currentIndex + 1]);
-  };
-
-  const handlePrevYear = () => {
-    const currentIndex = ALL_YEARS.indexOf(selectedYear);
-    if (currentIndex > 0) setSelectedYear(ALL_YEARS[currentIndex - 1]);
-  };
-
   return (
-    <div className="animate-fade-in relative">
-      {/* Year Selector Full Grid Overlay */}
-      {showYearGrid && (
-        <div className="fixed inset-0 z-[200] apple-glass animate-in fade-in zoom-in duration-300 p-10 flex flex-col items-center justify-center">
-          <button 
-            onClick={() => setShowYearGrid(false)}
-            className="absolute top-10 right-10 w-16 h-16 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-2xl transition-tv"
-          >✕</button>
+    <div className="animate-fade-in pb-24 bg-white">
+      {/* Dynamic Hero Section - Large Format for TV */}
+      <div className="relative mb-10">
+        <div className="h-[520px] relative overflow-hidden hero-curved-mask shadow-2xl">
+          <img 
+            src={featuredItem?.thumbnail || 'https://image.tmdb.org/t/p/original/vxqChitYWBi8zyF8p50j69OtNhY.jpg'} 
+            className="w-full h-full object-cover object-[center_15%] transition-transform duration-1000 hover:scale-105" 
+            alt="Featured Content"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/30"></div>
           
-          <h2 className="text-4xl font-heading font-black italic uppercase mb-12 tracking-widest opacity-50">Select Era & Year</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl w-full">
-            {ERAS.map(era => (
-              <div key={era.name} className="space-y-4">
-                <h3 className={`text-sm font-black uppercase tracking-widest mb-4 px-4 py-1 rounded bg-gradient-to-r ${era.color} inline-block`}>
-                  {era.name}
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {era.years.map(y => (
-                    <button
-                      key={y}
-                      onClick={() => { setSelectedYear(y); setShowYearGrid(false); }}
-                      className={`py-4 rounded-xl font-black transition-all border ${selectedYear === y ? 'bg-white text-black border-white scale-110 shadow-2xl' : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'}`}
-                    >
-                      {y}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="absolute top-24 inset-x-10 flex justify-between z-20">
+             <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white border border-white/20 transition-tv hover:bg-white hover:text-black">←</button>
+             <button className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white border border-white/20 transition-tv hover:bg-white hover:text-black">❤️</button>
           </div>
+
+          <button 
+            onClick={() => featuredItem && playVideo(featuredItem)}
+            className="absolute bottom-[-36px] left-1/2 -translate-x-1/2 w-20 h-20 bg-[#e50914] rounded-full flex items-center justify-center play-button-shadow z-30 transition-tv hover:scale-110 active:scale-90"
+            autoFocus
+          >
+            <span className="text-white text-3xl ml-1">▶</span>
+          </button>
         </div>
-      )}
 
-      {/* Year Hero Header */}
-      <div className="relative h-[65vh] flex flex-col justify-end px-6 md:px-12 pb-12 overflow-hidden">
-        <div className="absolute inset-0 bg-[#050505]">
-            <img 
-              src={`https://image.tmdb.org/t/p/original/vxqChitYWBi8zyF8p50j69OtNhY.jpg`} 
-              className="w-full h-full object-cover opacity-10 scale-105 blur-[2px]" 
-              alt="" 
-            />
-            <div className="absolute inset-0 netflix-gradient" />
-        </div>
-        
-        <div className="relative z-10 w-full">
-            <div className="flex items-center gap-4 mb-4">
-              <span className={`bg-gradient-to-r ${currentEra.color} px-3 py-1 rounded-md text-[10px] font-black italic tracking-widest uppercase shadow-lg`}>
-                {currentEra.name}
-              </span>
-              <div className="h-px w-20 bg-white/20"></div>
-              <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Archive Active</span>
+        <div className="mt-16 px-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-black italic uppercase text-[#1a1a1a] tracking-tighter mb-2">
+            {featuredItem && 'title' in featuredItem ? featuredItem.title : (featuredItem as any)?.name || `WWE SEASON ${selectedYear}`}
+          </h1>
+          <p className="text-[11px] text-gray-400 font-black uppercase tracking-[0.4em] mb-6">Unified Archive • 4K REMASTERED • TV-MA</p>
+          
+          <div className="flex items-center justify-center gap-14 mb-10">
+            <div className="text-center">
+               <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Timeline</p>
+               <p className="font-black text-base text-[#1a1a1a]">{selectedYear}</p>
             </div>
-
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-              <div className="flex items-center gap-6 group">
-                <button 
-                  onClick={handlePrevYear}
-                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0"
-                >‹</button>
-                
-                <div className="cursor-pointer" onClick={() => setShowYearGrid(true)}>
-                  <h1 className="text-8xl md:text-[140px] font-heading font-black italic uppercase leading-none tracking-tighter mb-2 hover:scale-105 transition-transform origin-left">
-                      {selectedYear}
-                  </h1>
-                  <p className="text-slate-400 text-sm md:text-lg font-medium max-w-xl italic opacity-80 flex items-center gap-2">
-                    Click to browse all years <span className="text-white/20 tracking-tighter">━━━━</span>
-                  </p>
-                </div>
-
-                <button 
-                  onClick={handleNextYear}
-                  className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white hover:text-black transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0"
-                >›</button>
-              </div>
-
-              {/* Navigation Rail - Quick Select */}
-              <div className="w-full lg:max-w-xl">
-                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Jump to Timeline</span>
-                    <button onClick={() => setShowYearGrid(true)} className="text-[10px] font-black uppercase tracking-widest text-violet-400 hover:text-white transition-colors">View All Grid</button>
-                 </div>
-                 <div 
-                  ref={yearsListRef}
-                  className="flex gap-3 overflow-x-auto pb-4 no-scrollbar scroll-smooth"
-                >
-                  {ALL_YEARS.map(year => (
-                    <button
-                      key={year}
-                      onClick={() => setSelectedYear(year)}
-                      className={`year-btn flex-shrink-0 w-20 h-14 rounded-xl flex items-center justify-center text-sm font-black transition-all border
-                        ${selectedYear === year 
-                          ? 'year-btn-active bg-white text-black border-white scale-110 shadow-xl z-10' 
-                          : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/20 hover:text-white'}`}
-                    >
-                      {year}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="text-center">
+               <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Premier</p>
+               <p className="font-black text-base text-[#e50914]">{featuredItem?.date}</p>
             </div>
+            <div className="text-center">
+               <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Resolution</p>
+               <p className="font-black text-base text-[#1a1a1a]">UHD</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Eras Quick Nav Bar (Sticky) */}
-      <nav className="sticky top-20 z-[80] mx-6 md:mx-12 apple-glass border border-white/10 rounded-2xl p-2 flex gap-1 shadow-2xl overflow-x-auto no-scrollbar">
-          {ERAS.map(era => (
-            <button
-              key={era.name}
-              onClick={() => setSelectedYear(era.years[0])}
-              className={`flex-1 min-w-[120px] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                ${currentEra.name === era.name ? `bg-gradient-to-r ${era.color} text-white shadow-lg` : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
-            >
-              {era.name}
-            </button>
-          ))}
-      </nav>
+      {/* Modern Year Selector - Focusable Pills */}
+      <div className="px-10 mb-16">
+         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-300 mb-6">Historical Archives</h3>
+         <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-carousel">
+            {ALL_YEARS.map(y => (
+              <button
+                key={y}
+                onClick={() => setSelectedYear(y)}
+                className={`flex-shrink-0 px-8 py-4 rounded-2xl font-black text-sm transition-all border tv-focusable snap-item ${selectedYear === y ? 'bg-[#1a1a1a] text-white border-black shadow-xl' : 'bg-gray-50 text-gray-400 border-gray-100 hover:bg-gray-100'}`}
+              >
+                {y}
+              </button>
+            ))}
+         </div>
+      </div>
 
-      {/* Unified Chronological Feed */}
-      <div className="relative z-20 pt-10 pb-20 bg-gradient-to-b from-transparent to-[#050505]">
-        {months.map((monthName, index) => (
-          <MonthRow 
+      {/* Chronological Unified Rows */}
+      <div className="space-y-12 pb-20">
+        {MONTHS.map((monthName, index) => (
+          <MonthSection 
             key={monthName} 
             monthName={monthName} 
-            items={chronologicalCalendar[index] || []} 
+            items={chronologicalArchive[index] || []} 
           />
         ))}
 
-        {Object.keys(chronologicalCalendar).length === 0 && (
-          <div className="py-40 text-center opacity-30 flex flex-col items-center">
-            <span className="text-6xl mb-4">📭</span>
-            <p className="text-xl font-heading font-black italic uppercase tracking-widest">No archival data found for {selectedYear}</p>
-            <p className="text-sm text-slate-500 mt-2">Archives are currently being indexed for this period.</p>
+        {Object.keys(chronologicalArchive).length === 0 && (
+          <div className="py-24 text-center">
+             <span className="text-6xl opacity-10">📼</span>
+             <p className="text-gray-300 font-black uppercase tracking-widest mt-6 text-xl">Archives offline</p>
           </div>
         )}
       </div>

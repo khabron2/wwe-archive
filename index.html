@@ -9,54 +9,77 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #050505;
-            --accent-color: #8b5cf6;
+            --bg-color: #f5f1ed;
+            --accent-color: #e50914;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
         }
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
-            color: #f8fafc;
+            color: var(--text-primary);
             margin: 0;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         h1, h2, h3, .font-heading {
             font-family: 'Outfit', sans-serif;
         }
         
-        /* Smooth scrolling for rows */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
         .hide-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
+
+        /* TV Snap Scrolling */
+        .snap-carousel {
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+        }
+        .snap-item {
+            scroll-snap-align: start;
         }
 
-        .netflix-gradient {
-            background: linear-gradient(180deg, rgba(5, 5, 5, 0) 0%, rgba(5, 5, 5, 0.8) 70%, rgba(5, 5, 5, 1) 100%);
+        .netflix-card-shadow {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .hero-curved-mask {
+            clip-path: ellipse(110% 100% at 50% 0%);
         }
 
         .apple-glass {
-            background: rgba(10, 10, 10, 0.7);
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
         }
 
-        /* TV Focus and Hover State - Isolated to the element */
         .transition-tv {
-            transition: transform 0.4s cubic-bezier(0.2, 1, 0.2, 1), box-shadow 0.4s ease;
-            will-change: transform;
+            transition: all 0.4s cubic-bezier(0.2, 1, 0.2, 1);
         }
 
-        .focus-ring:focus, .card-hover-effect:hover {
+        /* Premium TV Focus Effect */
+        .tv-focusable {
             outline: none;
-            transform: scale(1.08);
-            z-index: 100;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8), 0 0 0 2px var(--accent-color);
+            border: 3px solid transparent;
+            border-radius: 1.2rem;
+        }
+        .tv-focusable:focus-visible {
+            transform: scale(1.15);
+            border-color: #e50914;
+            box-shadow: 0 20px 40px rgba(229, 9, 20, 0.4);
+            z-index: 50;
+        }
+
+        .play-button-shadow {
+            box-shadow: 0 15px 35px rgba(229, 9, 20, 0.3);
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in {
